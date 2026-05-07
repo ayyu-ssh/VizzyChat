@@ -2,17 +2,17 @@ import json
 
 from backend.utils.schema import SharedState, ValidationSchema
 from backend.utils.prompts import INTENT_VALIDATION_PROMPT
-from backend.utils.config import gemini_model
+from backend.utils.config import openai_model, max_retries_for_intent_validation
 from langchain.agents import create_agent
 
 agent = create_agent(
-    model=gemini_model,
+    model=openai_model,
     system_prompt=INTENT_VALIDATION_PROMPT,
     response_format=ValidationSchema
 )
 
 def validate_intent(state: SharedState) -> bool:
-    if state.validate_intent.retries >= 3:
+    if state.validate_intent.retries >= max_retries_for_intent_validation:
         return True
     payload = {
         "query": state.raw_query,

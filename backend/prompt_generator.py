@@ -1,6 +1,6 @@
 from backend.utils.schema import SharedState, PromptListSchema
 from backend.utils.prompts import PROMPT_GENERATOR_PROMPT
-from backend.utils.config import gemini_model
+from backend.utils.config import openai_model
 from langchain.agents import create_agent
 from pathlib import Path
 import base64
@@ -8,7 +8,7 @@ import mimetypes
 import json
 
 agent = create_agent(
-    model=gemini_model,
+    model=openai_model,
     system_prompt=PROMPT_GENERATOR_PROMPT,
     response_format=PromptListSchema
 )

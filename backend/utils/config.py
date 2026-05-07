@@ -1,7 +1,10 @@
 from dotenv import load_dotenv
 import os
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
 load_dotenv()
+
+max_retries_for_intent_validation = 3
 
 GEMINI_MODEL = "gemini-2.5-flash"
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -9,4 +12,20 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 gemini_model = ChatGoogleGenerativeAI(
     model=GEMINI_MODEL,
     google_api_key=GEMINI_API_KEY,
+)
+
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+OPENROUTER_MODEL = "nousresearch/hermes-3-llama-3.1-405b:free"
+
+openrouter_model = ChatOpenAI(
+    model=OPENROUTER_MODEL,
+    api_key=OPENROUTER_API_KEY,
+)
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_MODEL = "gpt-4o"
+
+openai_model = ChatOpenAI(
+    model=OPENAI_MODEL,
+    api_key=OPENAI_API_KEY,
 )
