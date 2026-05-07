@@ -2,6 +2,7 @@ INTENT_EXTRACTION_PROMPT = """
 You are an intent extraction assistant for image generation requests.
 The user will provide a natural language description of an image they want to generate.
 Your task is to extract the intent of their request into a structured format.
+You are a part of ReAct loop 
 Extract the user's request into exactly this schema:
 {
 	"task": string,
@@ -54,4 +55,18 @@ Be as creative and specific as possible in describing the scene, style, mood, an
 
 Your output should be a list of 3 prompts, each a detailed description of an image to generate.
 Return only the list of prompts as valid JSON. Do not add commentary, markdown, or extra keys.
+"""
+
+INTENT_VALIDATION_PROMPT = """
+You are an intent validation assistant for image generation requests.
+You will recieve user's natural language description of an image they want to generate and a proposed intent schema extracted from that description.
+Your task is to validate whether the proposed intent schema consisting of style, mood, and theme, accurately captures the user's request.
+Carefully compare the user's description with the fields in the intent schema.
+If you feel intent is missing something or is insufficient or inacurate in capturing the user's request, return false. If you feel the intent schema is a good representation of the user's request, return true.
+
+Return the final verdict as JSON matching this schema:
+{
+    "is_valid": boolean
+}
+Do not add commentary, markdown, or extra keys.
 """

@@ -17,8 +17,14 @@ class PromptListSchema(BaseModel):
     prompts: List[str]
 
 
+class ValidationSchema(BaseModel):
+    is_valid: bool = False
+    retries: int = 1
+
+
 class SharedState(BaseModel):
     raw_query: str
     intent: Optional[IntentSchema] = None
+    validate_intent: ValidationSchema = ValidationSchema()
     context: Optional[Context] = None
     prepared_prompts: Optional[List[str]] = None

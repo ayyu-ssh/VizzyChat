@@ -18,6 +18,8 @@ agent = create_agent(
 
 def extract_intent(state: SharedState) -> SharedState:
     # Implementation for extracting intent from shared state
+
+    print ("ReAct loop execution count:", state.validate_intent.retries)
     query = state.raw_query
     response = agent.invoke({"messages": [{"role": "user", "content": query}]})
     state.intent = IntentSchema.model_validate(response["structured_response"])
