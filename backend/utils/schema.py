@@ -22,6 +22,23 @@ class ValidationSchema(BaseModel):
     retries: int = 1
     feedback: Optional[str] = None
 
+class RegenrateImageRequest(BaseModel):
+    feedback: Optional[str] = None
+    regenerate: bool = False
+    count: int = 0
+
+
+class FeedbackRequest(BaseModel):
+    feedback_text: str
+    image_path: str
+    regeneration_attempt: int = 1
+
+
+class RegenerationHistory(BaseModel):
+    feedback_requests: List[FeedbackRequest] = []
+    regeneration_count: int = 0
+    max_regenerations: int = 3
+
 
 class SharedState(BaseModel):
     raw_query: str
@@ -30,3 +47,7 @@ class SharedState(BaseModel):
     context: Optional[Context] = None
     prepared_prompts: Optional[PromptSchema] = None
     generated_image_path: Optional[str] = None
+    regenerate_request: Optional[RegenrateImageRequest] = None
+    feedback_request: Optional[FeedbackRequest] = None
+    regeneration_history: Optional[RegenerationHistory] = None
+    should_regenerate: bool = False

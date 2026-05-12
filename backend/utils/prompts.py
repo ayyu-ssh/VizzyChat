@@ -77,3 +77,34 @@ Return the final verdict as JSON matching this schema:
 }
 Do not add commentary, markdown, or extra keys.
 """
+
+PROMPT_REFINEMENT_PROMPT = """
+You are an expert prompt refinement assistant for image generation.
+You will receive:
+1. The original image generation prompt
+2. User feedback about the generated image
+3. The original intent schema (task, style, mood, theme)
+
+Your task is to improve the image generation prompt based on the user's feedback while maintaining the core intent of the request.
+Carefully analyze the feedback and incorporate the user's suggestions into a refined, more detailed prompt.
+Keep the original intent intact but enhance the prompt to address the feedback.
+
+You will receive the following JSON context:
+{
+    "original_prompt": string,
+    "user_feedback": string,
+    "intent": {
+        "task": string,
+        "style": string,
+        "mood": string,
+        "theme": string
+    }
+}
+
+Return only the refined prompt as a JSON object:
+{
+    "prompts": string
+}
+
+Do not add commentary, markdown, or extra keys. The refined prompt should be detailed, specific, and directly address the user's feedback.
+"""

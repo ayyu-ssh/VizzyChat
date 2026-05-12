@@ -9,7 +9,7 @@ from backend.intent import extract_intent
 from backend.validate_intent import validate_intent
 from backend.retrive_context import retrieve_context
 from backend.prompt_generator import generate_prompts
-from backend.image import generate_image
+from backend.image import generate_image, refine_prompt_with_feedback
 from langgraph.graph import StateGraph, END
 import json
 from pydantic import BaseModel
@@ -20,6 +20,7 @@ graph.add_node("extract_intent", extract_intent)
 graph.add_node("retrieve_context", retrieve_context)
 graph.add_node("generate_prompts", generate_prompts)
 graph.add_node("generate_image", generate_image)
+graph.add_node("refine_prompt", refine_prompt_with_feedback)
 
 graph.set_entry_point("extract_intent")
 
@@ -34,7 +35,30 @@ graph.add_conditional_edges(
 
 graph.add_edge("retrieve_context", "generate_prompts")
 graph.add_edge("generate_prompts", "generate_image")
-graph.add_edge("generate_image", END)
+
+
+def should_regenerate(state: SharedState) -> str:
+    """
+    Conditional router after generate_image.
+    Routes to refine_prompt if regeneration is needed, otherwise to END.
+    """
+    if state.should_regenerate:
+        regeneration_history = state.regeneration_history
+        if regeneration_history and regeneration_history.regeneration_count < regeneration_history.max_regenerations:
+            return "refine_prompt"
+    return "end"
+
+
+graph.add_conditional_edges(
+    "generate_image",
+    should_regenerate,
+    {
+        "refine_prompt": "refine_prompt",
+        "end": END
+    }
+)
+
+graph.add_edge("refine_prompt", "generate_image")
 
 workflow = graph.compile()
 
