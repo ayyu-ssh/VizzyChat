@@ -13,13 +13,14 @@ class Context(BaseModel):
     user_info: Optional[List[str]] = []
 
 
-class PromptListSchema(BaseModel):
-    prompts: List[str]
+class PromptSchema(BaseModel):
+    prompts: Optional[str] = None
 
 
 class ValidationSchema(BaseModel):
     is_valid: bool = False
     retries: int = 1
+    feedback: Optional[str] = None
 
 
 class SharedState(BaseModel):
@@ -27,4 +28,5 @@ class SharedState(BaseModel):
     intent: Optional[IntentSchema] = None
     validate_intent: ValidationSchema = ValidationSchema()
     context: Optional[Context] = None
-    prepared_prompts: Optional[List[str]] = None
+    prepared_prompts: Optional[PromptSchema] = None
+    generated_image_path: Optional[str] = None

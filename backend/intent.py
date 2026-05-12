@@ -20,6 +20,8 @@ def extract_intent(state: SharedState) -> SharedState:
     # Implementation for extracting intent from shared state
     print ("ReAct loop execution count:", state.validate_intent.retries)
     query = state.raw_query
+    if state.validate_intent.feedback is not None:
+        query += f" Here is some feedback to improve the intent extraction: {state.validate_intent.feedback}"
     response = agent.invoke({"messages": [{"role": "user", "content": query}]})
     state.intent = IntentSchema.model_validate(response["structured_response"])
     print ("intent", state.intent)

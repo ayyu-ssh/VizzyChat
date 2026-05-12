@@ -1,4 +1,4 @@
-from backend.utils.schema import SharedState, PromptListSchema
+from backend.utils.schema import SharedState, PromptSchema
 from backend.utils.prompts import PROMPT_GENERATOR_PROMPT
 from backend.utils.config import openai_model
 from langchain.agents import create_agent
@@ -10,7 +10,7 @@ import json
 agent = create_agent(
     model=openai_model,
     system_prompt=PROMPT_GENERATOR_PROMPT,
-    response_format=PromptListSchema
+    response_format=PromptSchema
 )
 
 
@@ -53,6 +53,6 @@ def generate_prompts(state: SharedState) -> SharedState:
         "context": context_payload,
     }
     response = agent.invoke({"messages": [{"role": "user", "content": json.dumps(payload)}]})
-    parsed = PromptListSchema.model_validate(response["structured_response"])
+    parsed = PromptSchema.model_validate(response["structured_response"])
     state.prepared_prompts = parsed.prompts
     return state

@@ -9,6 +9,7 @@ from backend.intent import extract_intent
 from backend.validate_intent import validate_intent
 from backend.retrive_context import retrieve_context
 from backend.prompt_generator import generate_prompts
+from backend.image import generate_image
 from langgraph.graph import StateGraph, END
 import json
 from pydantic import BaseModel
@@ -18,6 +19,7 @@ graph = StateGraph(SharedState)
 graph.add_node("extract_intent", extract_intent)
 graph.add_node("retrieve_context", retrieve_context)
 graph.add_node("generate_prompts", generate_prompts)
+graph.add_node("generate_image", generate_image)
 
 graph.set_entry_point("extract_intent")
 
@@ -31,7 +33,8 @@ graph.add_conditional_edges(
 )
 
 graph.add_edge("retrieve_context", "generate_prompts")
-graph.add_edge("generate_prompts", END)
+graph.add_edge("generate_prompts", "generate_image")
+graph.add_edge("generate_image", END)
 
 workflow = graph.compile()
 
