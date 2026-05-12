@@ -54,5 +54,5 @@ def generate_prompts(state: SharedState) -> SharedState:
     }
     response = agent.invoke({"messages": [{"role": "user", "content": json.dumps(payload)}]})
     parsed = PromptSchema.model_validate(response["structured_response"])
-    state.prepared_prompts = parsed.prompts
+    state.prepared_prompts = parsed
     return state

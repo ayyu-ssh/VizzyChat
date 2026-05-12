@@ -1,5 +1,8 @@
-from pydantic import BaseModel
-from typing import List, Optional
+from __future__ import annotations
+
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field
 
 class IntentSchema(BaseModel):
     task: str
@@ -38,6 +41,42 @@ class RegenerationHistory(BaseModel):
     feedback_requests: List[FeedbackRequest] = []
     regeneration_count: int = 0
     max_regenerations: int = 3
+
+
+class WorkflowStartRequest(BaseModel):
+    raw_query: str = Field(..., min_length=1)
+    max_regenerations: int = Field(default=3, ge=1)
+
+
+class FeedbackRegenerationRequest(BaseModel):
+    feedback_text: Optional[str] = Field(default=None, min_length=1)
+    max_regenerations: Optional[int] = Field(default=None, ge=1)
+
+
+class WorkflowStateResponse(BaseModel):
+    raw_query: str
+    intent: Optional[Dict[str, Any]] = None
+    context: Optional[Dict[str, Any]] = None
+    prepared_prompts: Optional[Dict[str, Any]] = None
+    generated_image_path: Optional[str] = None
+    regenerate_request: Optional[Dict[str, Any]] = None
+    feedback_request: Optional[Dict[str, Any]] = None
+    regeneration_history: Optional[Dict[str, Any]] = None
+    should_regenerate: bool = False
+
+
+class WorkflowSessionResponse(BaseModel):
+    session_id: str
+    generated_image_path: Optional[str] = None
+    generated_image_url: Optional[str] = None
+    regeneration_count: int = 0
+    max_regenerations: int = 3
+    state: WorkflowStateResponse
+
+
+class WorkflowSession(BaseModel):
+    session_id: str
+    state: SharedState
 
 
 class SharedState(BaseModel):
