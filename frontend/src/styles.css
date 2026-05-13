@@ -471,6 +471,69 @@ textarea {
   transform: none;
 }
 
+.reference-image-section {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 18px;
+  border: 1px solid rgba(125, 211, 252, 0.12);
+}
+
+.reference-image-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reference-image-label {
+  font-size: 0.92rem;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.reference-image-input {
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed rgba(125, 211, 252, 0.3);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+
+.reference-image-input:hover:not(:disabled) {
+  border-color: rgba(125, 211, 252, 0.5);
+  background: rgba(125, 211, 252, 0.08);
+}
+
+.reference-image-input:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.reference-image-preview {
+  display: grid;
+  gap: 8px;
+}
+
+.preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.preview-thumbnail {
+  max-height: 160px;
+  width: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(125, 211, 252, 0.18);
+  object-fit: cover;
+}
+
 @keyframes rise {
   from {
     opacity: 0;

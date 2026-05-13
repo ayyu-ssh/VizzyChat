@@ -179,6 +179,7 @@ function QueryBubble({ content, role }: { content: string; role: 'user' | 'assis
 
 export default function App() {
   const [composerText, setComposerText] = useState('')
+  const [referenceImageDataUrl, setReferenceImageDataUrl] = useState<string | null>(null)
   const [threads, setThreads] = useState<ThreadRecord[]>([])
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -199,6 +200,26 @@ export default function App() {
     setActiveSessionId(sessionId)
     setError(null)
     setComposerText('')
+  }
+
+  function handleReferenceImageUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const dataUrl = e.target?.result as string
+        setReferenceImageDataUrl(dataUrl)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  function clearReferenceImage() {
+    setReferenceImageDataUrl(null)
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
+    if (fileInput) {
+      fileInput.value = ''
+    }
   }
 
   function startDraftSession() {
@@ -263,7 +284,7 @@ export default function App() {
           }),
         )
       } else {
-        const response = await startWorkflow(composerText)
+        const response = await startWorkflow(composerText, activeComposerMode === 'new-thread' ? referenceImageDataUrl : null)
         const responseMessages = buildMessagesFromResponse(response, 'initial')
 
         setThreads((currentThreads) => [
@@ -277,6 +298,7 @@ export default function App() {
           },
         ])
         setActiveSessionId(response.session_id)
+        clearReferenceImage()
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : activeComposerMode === 'feedback' ? 'Feedback request failed' : 'Generation failed')
@@ -381,6 +403,46 @@ export default function App() {
                   <p className="composer-copy">{composerDescription}</p>
                 </div>
               </div>
+
+              {activeComposerMode === 'new-thread' && (
+                <div className="reference-image-section">
+                  <div className="reference-image-upload">
+                    <label htmlFor="reference-image-input" className="reference-image-label">
+                      📸 Reference Image (optional)
+                    </label>
+                    <input
+                      id="reference-image-input"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleReferenceImageUpload}
+                      className="reference-image-input"
+                      disabled={loading}
+                    />
+                  </div>
+
+                  {referenceImageDataUrl && (
+                    <div className="reference-image-preview">
+                      <div className="preview-header">
+                        <span>Reference image</span>
+                        <button
+                          type="button"
+                          className="ghost-button"
+                          onClick={clearReferenceImage}
+                          disabled={loading}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      <img
+                        src={referenceImageDataUrl}
+                        alt="Reference"
+                        className="preview-thumbnail"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
               <textarea
                 value={composerText}
                 onChange={(event) => setComposerText(event.target.value)}
