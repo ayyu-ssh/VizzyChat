@@ -2,7 +2,7 @@
 
 VizzyChat is a chat-first image generation workflow. A natural-language request is turned into an intent, the intent is validated, supporting context is gathered, a generation prompt is prepared, and an image is created. The same session can then accept feedback and regenerate the image from the last generated image plus the feedback, without rewriting the prompt or repeating the entire workflow.
 
-The feedback loop now uses a hybrid strategy: local visual tweaks default to image-conditioned regeneration, while broader semantic changes can route through prompt refinement. This keeps the common edit path stable while still allowing larger request changes when needed.
+The feedback loop uses a hybrid strategy: local visual tweaks default to image-conditioned regeneration, while broader semantic changes can route through prompt refinement. This keeps the common edit path stable while still allowing larger request changes when needed.
 
 The repository contains two parts:
 
