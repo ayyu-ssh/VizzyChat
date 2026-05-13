@@ -63,6 +63,24 @@ The workflow itself is assembled in [backend/graph.py](backend/graph.py) using L
 
 `extract_intent` -> `validate_intent` -> `retrieve_context` -> `generate_prompts` -> `generate_image`
 
+```mermaid
+flowchart TD
+	A["User query"] --> B["extract_intent"]
+	B --> C{"validate_intent"}
+	C -- valid --> D["retrieve_context"]
+	C -- retry --> B
+	D --> E["generate_prompts"]
+	E --> F["generate_image"]
+	F --> G{"feedback?"}
+	G -- no --> END([End])
+	G -- yes --> H["classify_feedback"]
+	H --> I{"routing strategy"}
+	I -- image_regen --> J["refine_prompt"]
+	I -- prompt_refine --> J
+	I -- ignore --> END
+	J --> F
+```
+
 If regeneration is requested, the workflow can loop through:
 
 `refine_prompt` -> `generate_image`
@@ -76,6 +94,7 @@ The public helpers in [backend/main.py](backend/main.py) are:
 ### Backend responsibilities
 
 - Intent extraction turns the raw query into a structured intent object.
+- Intent extraction uses a ReAct-style retry loop when validation fails, so the agent can refine the intent before the workflow continues.
 - Intent validation can retry extraction when the result is not usable.
 - Context retrieval adds supporting information required by the prompt.
 - Prompt generation converts the intent and context into a detailed generation prompt.
