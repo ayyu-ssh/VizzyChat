@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from pathlib import Path
+import os
 from typing import Dict, Optional
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from backend.main import (
@@ -26,6 +28,20 @@ from backend.utils.schema import (
 ROOT_DIR = Path(__file__).resolve().parents[1]
 IMAGES_DIR = ROOT_DIR / "images"
 app = FastAPI(title="VizzyChat Workflow API", version="0.1.0")
+
+
+def _parse_cors_origins() -> list[str]:
+    raw_value = os.getenv("FRONTEND_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")
+    return [origin.strip() for origin in raw_value.split(",") if origin.strip()]
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_parse_cors_origins(),
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 if IMAGES_DIR.exists():
     app.mount("/images", StaticFiles(directory=str(IMAGES_DIR)), name="images")
@@ -72,7 +88,6 @@ def _build_response(session_id: str, state: SharedState) -> WorkflowSessionRespo
         generated_image_path=state.generated_image_path,
         generated_image_url=_image_url_from_path(state.generated_image_path),
         regeneration_count=history.regeneration_count if history else 0,
-        max_regenerations=history.max_regenerations if history else 3,
         state=_serialize_state(state),
     )
 
@@ -85,12 +100,11 @@ def health() -> dict[str, str]:
 @app.post("/workflows/image-generation", response_model=WorkflowSessionResponse)
 def start_workflow(request: WorkflowStartRequest) -> WorkflowSessionResponse:
     session_id = str(uuid4())
-    state = run_full_workflow(request.raw_query)
+    # Pass optional image_data_url from the request into the workflow
+    state = run_full_workflow(request.raw_query, image_data_url=request.image_data_url)
 
     if state.regeneration_history is None:
-        state.regeneration_history = RegenerationHistory(max_regenerations=request.max_regenerations)
-    else:
-        state.regeneration_history.max_regenerations = request.max_regenerations
+        state.regeneration_history = RegenerationHistory()
 
     _sessions[session_id] = WorkflowSession(session_id=session_id, state=state)
     return _build_response(session_id, state)
@@ -106,16 +120,6 @@ def regenerate_with_feedback(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
 
     state = session.state
-    history = state.regeneration_history
-    max_regenerations = request.max_regenerations or (history.max_regenerations if history else 3)
-
-    if history is not None:
-        history.max_regenerations = max_regenerations
-        if history.regeneration_count >= history.max_regenerations:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Maximum regenerations reached",
-            )
 
     # If the client provided feedback_text, use the feedback-driven regeneration.
     # Otherwise, run a no-feedback regeneration variation.
@@ -123,10 +127,9 @@ def regenerate_with_feedback(
         state = submit_feedback_and_regenerate(
             state,
             feedback_text=request.feedback_text,
-            max_regenerations=max_regenerations,
         )
     else:
-        state = regenerate_without_feedback(state, max_regenerations=max_regenerations)
+        state = regenerate_without_feedback(state)
     session.state = state
     _sessions[session_id] = session
     return _build_response(session_id, state)

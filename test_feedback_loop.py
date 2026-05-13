@@ -6,7 +6,7 @@ This script tests:
 2. Feedback request tracking
 3. Regeneration history tracking
 4. Conditional routing in the graph
-5. The refine_prompt_with_feedback function
+5. Feedback regeneration bookkeeping without prompt rewriting
 """
 
 import json
@@ -16,9 +16,11 @@ from backend.utils.schema import (
     RegenerationHistory,
     IntentSchema,
     PromptSchema,
-    Context
+    Context,
+    FeedbackType,
 )
 from backend.graph import should_regenerate
+from backend.image import refine_prompt_with_feedback, classify_feedback_strategy
 
 def test_feedback_schema():
     """Test that FeedbackRequest schema works correctly."""
@@ -235,6 +237,73 @@ def test_feedback_loop_workflow():
     print("PASS: Regeneration history updated correctly")
 
 
+def test_feedback_regeneration_keeps_prompt():
+    print("\n=== Test 7: Feedback Regeneration Keeps Prompt ===")
+
+    initial_prompt = "An impressionist-style peaceful sunset landscape with warm orange and pink hues..."
+    state = SharedState(
+        raw_query="Generate a sunset landscape",
+        intent=IntentSchema(
+            task="image generation",
+            style="impressionist",
+            mood="peaceful",
+            theme="nature",
+            context_needed=[],
+        ),
+        prepared_prompts=PromptSchema(prompts=initial_prompt),
+        generated_image_path="/images/generated_001.jpg",
+        feedback_request=FeedbackRequest(
+            feedback_text="Add more clouds and make it more dramatic",
+            image_path="/images/generated_001.jpg",
+            regeneration_attempt=1,
+        ),
+        regeneration_history=RegenerationHistory(regeneration_count=0),
+        should_regenerate=True,
+    )
+    state.checkpoints = []
+
+    updated_state = refine_prompt_with_feedback(state)
+
+    assert updated_state.prepared_prompts.prompts == initial_prompt
+    assert updated_state.regeneration_history.regeneration_count == 1
+    assert updated_state.regeneration_history.feedback_requests[0].image_path == "/images/generated_001.jpg"
+    assert updated_state.regeneration_history.feedback_requests[0].selected_strategy in {"image_regen", None}
+    print("PASS: Feedback regeneration keeps the original prompt and records the prior image")
+
+
+def test_feedback_strategy_classifier():
+    print("\n=== Test 8: Feedback Strategy Classification ===")
+
+    state = SharedState(
+        raw_query="Generate a sunset landscape",
+        feedback_request=FeedbackRequest(
+            feedback_text="Make it brighter and increase contrast",
+            image_path="/images/generated_001.jpg",
+            regeneration_attempt=1,
+        ),
+    )
+
+    state = classify_feedback_strategy(state)
+    assert state.routing_strategy == "image_regen"
+    assert state.feedback_classification is not None
+    assert state.feedback_classification.feedback_type in {
+        FeedbackType.VISUAL_REFINEMENT,
+        FeedbackType.COMPOSITION_CHANGE,
+    }
+    print("PASS: Visual feedback routes to image_regen")
+
+    state.feedback_request = FeedbackRequest(
+        feedback_text="Change the mood to happy and make it winter",
+        image_path="/images/generated_001.jpg",
+        regeneration_attempt=2,
+    )
+    state = classify_feedback_strategy(state)
+    assert state.routing_strategy == "prompt_refine"
+    assert state.feedback_classification is not None
+    assert state.feedback_classification.feedback_type == FeedbackType.SEMANTIC_CHANGE
+    print("PASS: Semantic feedback routes to prompt_refine")
+
+
 def main():
     """Run all tests."""
     print("=" * 60)
@@ -248,6 +317,8 @@ def main():
         test_conditional_routing()
         test_feedback_request_progression()
         test_feedback_loop_workflow()
+        test_feedback_regeneration_keeps_prompt()
+        test_feedback_strategy_classifier()
         
         print("\n" + "=" * 60)
         print("ALL TESTS PASSED!")

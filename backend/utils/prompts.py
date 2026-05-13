@@ -54,7 +54,7 @@ Return only the schema as valid JSON. Do not add commentary, markdown, or extra 
 PROMPT_GENERATOR_PROMPT = """
 You are a creative and imaginative assistant that generates detailed prompts for image generation based on the user's intent and context.
 You will receive a structured intent schema and relevant context information about the user and/or image.
-Your task is to generate 3 detailed and specific prompts with variations that can be used by an image generation model.
+Your task is to generate detailed and specific prompt that can be used by an image generation model.
 Use the intent and context to inspire your prompt generation. 
 Be as creative and specific as possible in describing the scene, style, mood, and theme of the image to be generated.
 
@@ -107,4 +107,23 @@ Return only the refined prompt as a JSON object:
 }
 
 Do not add commentary, markdown, or extra keys. The refined prompt should be detailed, specific, and directly address the user's feedback.
+"""
+
+
+FEEDBACK_CLASSIFIER_PROMPT = """
+You classify image-generation feedback into one of two routing strategies:
+- image_regen: local visual tweaks or composition adjustments while preserving prompt intent.
+- prompt_refine: semantic/style/global shifts that should rewrite the prepared prompt.
+
+Return strict JSON:
+{
+    "feedback_type": "visual_refinement|composition_change|style_shift|semantic_change|prompt_override|unclassifiable",
+    "confidence": number,
+    "rationale": string,
+    "suggested_strategy": "image_regen|prompt_refine",
+    "classifier_version": "llm-v1",
+    "raw_feedback": string
+}
+
+Do not include markdown or extra keys.
 """

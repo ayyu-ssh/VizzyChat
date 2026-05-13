@@ -1,7 +1,7 @@
 from backend.intent import extract_intent
 from backend.retrive_context import retrieve_context
 from backend.prompt_generator import generate_prompts
-from backend.image import generate_image, refine_prompt_with_feedback
+from backend.image import generate_image, refine_prompt_with_feedback, classify_feedback_strategy
 from backend.utils.schema import SharedState, FeedbackRequest, RegenerationHistory
 from backend.graph import workflow
 import json
@@ -32,7 +32,7 @@ def main():
     return state
 
 
-def run_full_workflow(raw_query: str) -> SharedState:
+def run_full_workflow(raw_query: str, image_data_url: str | None = None) -> SharedState:
     """
     Run the complete image generation workflow using LangGraph.
 
@@ -43,6 +43,12 @@ def run_full_workflow(raw_query: str) -> SharedState:
         The final SharedState with generated_image_path populated
     """
     initial_state = SharedState(raw_query=raw_query)
+    # If caller provided an image_data_url, attach it to the initial state's context
+    if image_data_url:
+        from backend.utils.schema import Context
+
+        initial_state.context = Context(image_data_url=image_data_url, user_info=None)
+
     final_state = workflow.invoke(initial_state)
     return _coerce_shared_state(final_state)
 
@@ -50,18 +56,17 @@ def run_full_workflow(raw_query: str) -> SharedState:
 def submit_feedback_and_regenerate(
     state: SharedState,
     feedback_text: str,
-    max_regenerations: int = 3
 ) -> SharedState:
     """
     Submit feedback on a generated image and trigger regeneration.
 
-    This function refines the prompt based on feedback and regenerates the image.
-    NOTE: Does NOT re-extract intent or retrieve context - only refines prompt and regenerates image.
+    This function preserves the prompt, records the feedback, and regenerates
+    from the last generated image plus the user's feedback.
+    NOTE: Does NOT re-extract intent or retrieve context.
 
     Args:
         state: The current SharedState with generated_image_path populated
         feedback_text: User's feedback on the generated image (e.g., "make it brighter" or "add more colors")
-        max_regenerations: Maximum number of regeneration attempts allowed (default: 3)
 
     Returns:
         Updated SharedState with new generated_image_path and updated regeneration_history
@@ -74,8 +79,7 @@ def submit_feedback_and_regenerate(
         # User views image and provides feedback
         state = submit_feedback_and_regenerate(
             state,
-            feedback_text="The colors are too muted, make it more vibrant",
-            max_regenerations=3
+            feedback_text="The colors are too muted, make it more vibrant"
         )
 
         # Check the new generated image
@@ -85,12 +89,7 @@ def submit_feedback_and_regenerate(
 
     # Initialize regeneration history if not present
     if state.regeneration_history is None:
-        state.regeneration_history = RegenerationHistory(max_regenerations=max_regenerations)
-
-    # Check if we haven't exceeded max regenerations
-    if state.regeneration_history.regeneration_count >= state.regeneration_history.max_regenerations:
-        print(f"Maximum regenerations ({max_regenerations}) reached. Cannot regenerate further.")
-        return state
+        state.regeneration_history = RegenerationHistory()
 
     # Create feedback request
     state.feedback_request = FeedbackRequest(
@@ -99,7 +98,10 @@ def submit_feedback_and_regenerate(
         regeneration_attempt=state.regeneration_history.regeneration_count + 1
     )
 
-    # Refine prompt based on feedback (skips intent extraction and context retrieval)
+    # Pick regeneration strategy (image_regen vs prompt_refine).
+    state = classify_feedback_strategy(state)
+
+    # Preserve the prompt and regenerate from the previous image reference.
     state = refine_prompt_with_feedback(state)
 
     # Regenerate image with refined prompt
@@ -108,7 +110,7 @@ def submit_feedback_and_regenerate(
     return _coerce_shared_state(state)
 
 
-def regenerate_without_feedback(state: SharedState, max_regenerations: int = 3) -> SharedState:
+def regenerate_without_feedback(state: SharedState) -> SharedState:
     """
     Regenerate the image prompt and image without explicit user feedback.
 
@@ -119,7 +121,6 @@ def regenerate_without_feedback(state: SharedState, max_regenerations: int = 3) 
 
     Args:
         state: The current SharedState with generated_image_path populated
-        max_regenerations: Maximum number of regeneration attempts allowed (default: 3)
 
     Returns:
         Updated SharedState with new generated_image_path and updated regeneration_history
@@ -136,15 +137,11 @@ def regenerate_without_feedback(state: SharedState, max_regenerations: int = 3) 
 
     # Initialize regeneration history if not present
     if state.regeneration_history is None:
-        state.regeneration_history = RegenerationHistory(max_regenerations=max_regenerations)
-
-    # Check if we haven't exceeded max regenerations
-    if state.regeneration_history.regeneration_count >= state.regeneration_history.max_regenerations:
-        print(f"Maximum regenerations ({max_regenerations}) reached. Cannot regenerate further.")
-        return state
+        state.regeneration_history = RegenerationHistory()
 
     # Set feedback to None to trigger simple prompt regeneration (without feedback)
     state.feedback_request = None
+    state.routing_strategy = "prompt_refine"
 
     # Refine prompt without feedback (regenerates from intent)
     state = refine_prompt_with_feedback(state)

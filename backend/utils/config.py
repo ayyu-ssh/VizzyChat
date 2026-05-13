@@ -29,3 +29,14 @@ openai_model = ChatOpenAI(
     model=OPENAI_MODEL,
     api_key=OPENAI_API_KEY,
 )
+
+
+def _as_bool(raw_value: str | None, default: bool = False) -> bool:
+    if raw_value is None:
+        return default
+    return raw_value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+ENABLE_FEEDBACK_CLASSIFICATION = _as_bool(os.getenv("ENABLE_FEEDBACK_CLASSIFICATION"), default=False)
+CLASSIFIER_TIMEOUT_SECONDS = int(os.getenv("CLASSIFIER_TIMEOUT_SECONDS", "10"))
+CLASSIFIER_CONFIDENCE_THRESHOLD = float(os.getenv("CLASSIFIER_CONFIDENCE_THRESHOLD", "0.65"))

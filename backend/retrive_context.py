@@ -10,11 +10,18 @@ def retrieve_user_info(query: str) -> List[str]:
 
 
 def retrieve_context(state: SharedState, image_data_url: str = None) -> SharedState:
+    # Use image_data_url provided on the state if present, otherwise use the passed-in value.
     context = Context(image_data_url=None, user_info=None)
     context_required = state.intent.context_needed
 
+    provided_image = None
+    if state.context and getattr(state.context, "image_data_url", None):
+        provided_image = state.context.image_data_url
+    elif image_data_url:
+        provided_image = image_data_url
+
     if "image" in context_required:
-        context.image_data_url = image_data_url
+        context.image_data_url = provided_image
     if "information" in context_required:
         context.user_info = retrieve_user_info(state.raw_query)
 
